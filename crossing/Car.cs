@@ -11,23 +11,25 @@ using System.Windows.Navigation;
 using System.Windows.Media.Animation;
 using System.ComponentModel;
 using System.Threading;
+using System.Windows.Controls;
 
 namespace crossing
 {
     public class Car : INotifyPropertyChanged
     {
         MainWindow mainWin;
+       // public AnimationClock myControllableClock = myRectAnimation.CreateClock();
         public RectangleGeometry myRectangleGeometry = new RectangleGeometry();
-        Storyboard driveStoryboard = new Storyboard();
+        public Storyboard driveStoryboard = new Storyboard();
+        public RectAnimation myRectAnimation  = new RectAnimation();
         public Rect myRect = new Rect();
-        public Path path = new Path();
-        public int velo;
+        public Path path;
+        public double velo;
         public char dir;
         public int id;
         public bool HasFinished;
         public event PropertyChangedEventHandler PropertyChanged;
         private object carLock = new object();
-
 
         // Create the OnPropertyChanged method to raise the event
         protected void OnPropertyChanged(String id)
@@ -39,7 +41,7 @@ namespace crossing
             }
         }
 
-        public Car(int _pos_x, int _pos_y, int _velo, char _dir, int _id, object _lock, MainWindow win)
+        public Car(int _pos_x, int _pos_y, double _velo, char _dir, int _id, object _lock, MainWindow win)
         {
             mainWin = win;
             HasFinished = false;
@@ -63,28 +65,33 @@ namespace crossing
             id = _id;
         }
 
-        public void DriveCar(MainWindow mainWin)
+        public void DriveCar(MainWindow mainWin, Canvas container)
         {
-
+            path = new Path(); 
             path.Fill = Brushes.LemonChiffon;
             path.StrokeThickness = 1;
             path.Stroke = Brushes.Black;
             path.Data = this.myRectangleGeometry;
 
-            RectAnimation myRectAnimation = new RectAnimation();
-            myRectAnimation.Duration = TimeSpan.FromSeconds(10);
+            myRectAnimation.Duration = TimeSpan.FromSeconds(50);
             myRectAnimation.FillBehavior = FillBehavior.HoldEnd;
+            myRectAnimation.SpeedRatio = velo;
+           // myControllableClock = myRectAnimation.CreateClock();
+
+
+
 
             // Set the From and To properties of the animation.
-            switch(dir)
+            switch (dir)
             {
                 case 'l':
                     myRectAnimation.From = new Rect(myRect.X, myRect.Y, 50, 25);
-                    myRectAnimation.To = new Rect(-50, myRect.Y, 50, 25);
+                    myRectAnimation.To = new Rect(1000, myRect.Y, 50, 25);
                     break;
                 case 'r':
                     myRectAnimation.From = new Rect(myRect.X, myRect.Y, 50, 25);
-                    myRectAnimation.To = new Rect(1000, myRect.Y, 50, 25);
+                    myRectAnimation.To = new Rect(-50, myRect.Y, 50, 25);
+
                     break;
                 case 'u':
                     myRectAnimation.From = new Rect(myRect.X, myRect.Y, 25, 50);
@@ -110,22 +117,12 @@ namespace crossing
             // Start the storyboard when the Path loads.
             path.Loaded += delegate (object sender, RoutedEventArgs e)
             {
-                driveStoryboard.Begin(mainWin);
+                driveStoryboard.Begin(mainWin, true);
             };
-
-            mainWin.Invoke(mainWin.myDelegate);
-
-            lock (carLock)
-            {
-                // Assign the geometry a name so that
-                // it can be targeted by a Storyboard.
-                mainWin.RegisterName(
-                    "RectGeometryNr" + id.ToString(), myRectangleGeometry);
-            }
-
-
+           
+            mainWin.RegisterName("RectGeometryNr" + id.ToString(), myRectangleGeometry);
+            //myRectAnimation.Completed += new EventHandler(Anim_Completed);
             driveStoryboard.Completed += new EventHandler(Story_Completed);
-            Console.WriteLine("ID aktualnego wątku: " + Thread.CurrentThread.ManagedThreadId);
         }
 
         private void Story_Completed(object sender, EventArgs e)
@@ -133,5 +130,7 @@ namespace crossing
             // tutaj nalezy dodać usuwanie animacji
             HasFinished = true;
         }
+
+
     }
 }
